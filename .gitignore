@@ -1,6 +1,6 @@
 .vs/
-jolt/*
-stb/*
+jolt/
+stb/
 x64/*
 raylib/*
 perlin-rover/x64/*
