@@ -89,11 +89,11 @@ VehicleHandler::VehicleHandler(JPH::PhysicsSystem& ph)
         }
     }
 
-    mWheelFwdLeftModel = LoadModelFromMesh(GenMeshCylinder(mHalfWheelHeight, 2 * mHalfWheelWidth, 32));
+    /*mWheelFwdLeftModel = LoadModelFromMesh(GenMeshCylinder(mHalfWheelHeight, 2 * mHalfWheelWidth, 32));
 	mWheelFwdRightModel = LoadModelFromMesh(GenMeshCylinder(mHalfWheelHeight, 2 * mHalfWheelWidth, 32));
 	mWheelRearLeftModel = LoadModelFromMesh(GenMeshCylinder(mHalfWheelHeight, 2 * mHalfWheelWidth, 32));
 	mWheelRearRightModel = LoadModelFromMesh(GenMeshCylinder(mHalfWheelHeight, 2 * mHalfWheelWidth, 32));
-	mChassisModel = LoadModelFromMesh(GenMeshCube(mHalfVehicleWidth * 2, mHalfVehicleHeight * 2, mHalfVehicleLength * 2.0f));
+	mChassisModel = LoadModelFromMesh(GenMeshCube(mHalfVehicleWidth * 2, mHalfVehicleHeight * 2, mHalfVehicleLength * 2.0f));*/
 }
 
 
@@ -181,7 +181,7 @@ void VehicleHandler::DrawVehicle(
     JPH::Quat chassisRotArg
 )
 {
-    Vector3 outAxis = Vector3One();
+    /*Vector3 outAxis = Vector3One();
     float outAngle = 0.0f;
     
     Vector3 wheelFwdLeftPos = Vector3{ wheelFwdLeftPosArg.GetX(), wheelFwdLeftPosArg.GetY() , wheelFwdLeftPosArg.GetZ() };
@@ -215,5 +215,5 @@ void VehicleHandler::DrawVehicle(
 	DrawModelWires(mChassisModel, chassisPos, 1.0f, RED);
 
     cameraPositionAnchorPoint = Vector3Add(Vector3Scale(Vector3Add(wheelRearLeftPos, wheelRearRightPos), 0.5f), Vector3{ 0, 3, -5 });
-    cameraTargetAnchorPoint = Vector3Scale(Vector3Add(wheelFwdLeftPos, wheelFwdRightPos), 0.5f);
+    cameraTargetAnchorPoint = Vector3Scale(Vector3Add(wheelFwdLeftPos, wheelFwdRightPos), 0.5f);*/
   }

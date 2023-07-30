@@ -36,4 +36,5 @@ git clone https://github.com/NVIDIAGameWorks/Falcor.git
 cd .\Falcor\
 .\setup_vs2022.bat
 ```
-- Open the solution found in `.\Falcor\build\windows-vs2022` and build the `falcor` project
+- Open the solution found in `.\Falcor\build\windows-vs2022` and build the whole solution
+

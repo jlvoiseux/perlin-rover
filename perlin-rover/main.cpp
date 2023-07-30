@@ -3,20 +3,25 @@
 #include <cstdarg>
 #include <thread>
 
-#include "raylib.h"
 #include "Falcor.h"
 #include "Jolt/Jolt.h"
 #include "Jolt/Core/Factory.h"
 #include "Jolt/Core/JobSystemThreadPool.h"
 #include "Jolt/RegisterTypes.h"
 #include "KeyHandler.h"
+#include "Renderer.h"
 #include "TerrainHandler.h"
 #include "VehicleHandler.h"
 
 
-int main(int argc, char* argv[])
+int main(int argc, char** argv)
 {
-    std::cout << "Hello World" << std::endl;
+    SampleAppConfig config;
+    config.windowDesc.title = "HelloDXR";
+    config.windowDesc.resizableWindow = true;
+
+    Renderer renderer(config);
+    return renderer.run();
 }
 
 //int main(int argc, char* argv[])

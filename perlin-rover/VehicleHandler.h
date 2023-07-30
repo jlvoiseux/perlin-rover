@@ -7,8 +7,6 @@
 #include "Jolt/Physics/Collision/Shape/CylinderShape.h"
 #include "Jolt/Physics/Constraints/SixDOFConstraint.h"
 #include "Jolt/Physics/PhysicsSystem.h"
-#include "raylib.h"
-#include "raymath.h"
 
 #include "Utilities.h"
 
@@ -39,8 +37,8 @@ public:
 		JPH::Quat chassisRotArg
 	);
 
-	Vector3 cameraPositionAnchorPoint = Vector3Zero();
-	Vector3 cameraTargetAnchorPoint = Vector3Zero();
+	//Vector3 cameraPositionAnchorPoint = Vector3Zero();
+	//Vector3 cameraTargetAnchorPoint = Vector3Zero();
 
 private:
 	static inline bool		sIsFrontWheel(EWheel inWheel) { return inWheel == EWheel::FrontLeft || inWheel == EWheel::FrontRight; }
@@ -63,9 +61,9 @@ private:
 	const float mHalfWheelWidth = 0.05f;
 	const float mHalfWidthTravel = 0.5f;
 
-	Model mWheelFwdLeftModel;
-	Model mWheelFwdRightModel;
-	Model mWheelRearLeftModel;
-	Model mWheelRearRightModel;
-	Model mChassisModel;
+	//Model mWheelFwdLeftModel;
+	//Model mWheelFwdRightModel;
+	//Model mWheelRearLeftModel;
+	//Model mWheelRearRightModel;
+	//Model mChassisModel;
 };
