@@ -1,5 +1,6 @@
 .vs/
-jolt/
+Falcor/
+JoltPhysics/
 stb/
 x64/*
 raylib/*
