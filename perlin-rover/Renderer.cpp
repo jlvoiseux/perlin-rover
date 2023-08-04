@@ -2,7 +2,7 @@
 
 #include "Scene/Animation/AnimationController.h"
 
-static const Falcor::float4 kClearColor(0.38f, 0.52f, 0.10f, 1);
+static const Falcor::float4 kClearColor(0.93f, 0.73f, 0.83f, 1.f);
 static const std::string kDefaultScene = "scene.pyscene";
 
 Renderer::Renderer(const Falcor::SampleAppConfig& config) : SampleApp(config) {}
@@ -16,6 +16,24 @@ Renderer::~Renderer()
 	delete mObjectVsBroadPhaseLayerFilter;
 	delete mObjectVsObjectLayerFilter;
     delete mPhysics;
+}
+
+void Renderer::onGuiRender(Falcor::Gui* pGui)
+{
+    Falcor::Gui::Window w(pGui, "Hello DXR Settings", { 300, 400 }, { 10, 80 });
+
+    w.checkbox("Ray Trace", mRayTrace);
+    w.checkbox("Use Depth of Field", mUseDOF);
+    if (w.button("Load Scene"))
+    {
+        std::filesystem::path path;
+        if (openFileDialog(Falcor::Scene::getFileExtensionFilters(), path))
+        {
+            loadScene(path, getTargetFbo().get());
+        }
+    }
+
+    mpScene->renderUI(w);
 }
 
 void Renderer::onLoad(Falcor::RenderContext* pRenderContext)
@@ -103,8 +121,6 @@ void Renderer::onFrameRender(Falcor::RenderContext* pRenderContext, const Falcor
 		UpdateMesh(4, *mVehicle->GetPartTransform(VehicleHandler::EWheel::RearRight));
 		UpdateMesh(5, *mVehicle->GetPartTransform(VehicleHandler::EWheel::Num));
 
-        std::cout << mVehicle->GetPartTransform(VehicleHandler::EWheel::Num)->getTranslation().y << std::endl;
-
         mpCamera->setPosition(mVehicle->cameraAnchor);
         mpCamera->setTarget(mVehicle->cameraTargetAnchor);
         
@@ -165,7 +181,7 @@ void Renderer::loadScene(const std::filesystem::path& path, const Falcor::Fbo* p
     // This utility wraps the creation of the program and vars, and sets the necessary scene defines.
     Falcor::Program::Desc rasterProgDesc;
     rasterProgDesc.addShaderModules(shaderModules);
-    rasterProgDesc.addShaderLibrary("Samples/HelloDXR/HelloDXR.3d.slang").vsEntry("vsMain").psEntry("psMain");
+    rasterProgDesc.addShaderLibrary("../custom-shaders/PerlinRover.3d.slang").vsEntry("vsMain").psEntry("psMain");
     rasterProgDesc.addTypeConformances(typeConformances);
 
     mpRasterPass = Falcor::RasterPass::create(getDevice(), rasterProgDesc, defines);
@@ -183,7 +199,7 @@ void Renderer::loadScene(const std::filesystem::path& path, const Falcor::Fbo* p
 
     Falcor::RtProgram::Desc rtProgDesc;
     rtProgDesc.addShaderModules(shaderModules);
-    rtProgDesc.addShaderLibrary("Samples/HelloDXR/HelloDXR.rt.slang");
+    rtProgDesc.addShaderLibrary("../custom-shaders/PerlinRover.rt.slang");
     rtProgDesc.addTypeConformances(typeConformances);
     rtProgDesc.setMaxTraceRecursionDepth(3); // 1 for calling TraceRay from RayGen, 1 for calling it from the
     // primary-ray ClosestHit shader for reflections, 1 for reflection ray

@@ -202,6 +202,6 @@ void VehicleHandler::UpdateVehicle(
 	Falcor::float3 backDir = mRearMiddle - mFwdMiddle;
 
 	cameraTargetAnchor = mFwdMiddle + 2.0f * frontDir;
-	cameraAnchor = mRearMiddle + Falcor::float3{ 2.0f * backDir.x, backDir.y + 5.0f, 2.0f * backDir.z };
+	cameraAnchor = mRearMiddle + Falcor::float3{ 2.0f * backDir.x, backDir.y + 3.0f, 2.0f * backDir.z };
 	
   }

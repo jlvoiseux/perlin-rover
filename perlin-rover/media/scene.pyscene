@@ -1,35 +1,42 @@
+import random
+
 # Create materials
 red = StandardMaterial('Red')
 red.baseColor = float4(0.8, 0.1, 0.1, 1.0)
 red.roughness = 0.3
-
-green = StandardMaterial('Green')
-green.baseColor = float4(0.1, 0.8, 0.1, 1.0)
-green.roughness = 0.2
+red.metallic = 0.8
 
 blue = StandardMaterial('Blue')
 blue.baseColor = float4(0.1, 0.1, 0.8, 1.0)
 blue.roughness = 0.3
-blue.metallic = 1
+blue.metallic = 0.8
+
+mirror = StandardMaterial('mirror')
+mirror.baseColor = float4(1.0, 1.0, 1.0, 1.0)
+mirror.roughness = 0.3
+mirror.metallic = 0.8
 
 groundMtl = StandardMaterial('groundMtl')
-groundMtl.loadTexture(MaterialTextureSlot.BaseColor, 'textures/Gravel032_1K_Color.png', True)
-groundMtl.loadTexture(MaterialTextureSlot.Normal, 'textures/Gravel032_1K_NormalDX.png', True)
-groundMtl.loadTexture(MaterialTextureSlot.Specular, 'textures/Gravel032_1K_Roughness.png', True)
-groundMtl.loadTexture(MaterialTextureSlot.Transmission, 'textures/Gravel032_1K_AmbientOcclusion.png', True)
+groundMtl.loadTexture(MaterialTextureSlot.BaseColor, 'textures/Gravel032_1K_Color.jpg', False)
+groundMtl.loadTexture(MaterialTextureSlot.Normal, 'textures/Gravel032_1K_NormalDX.jpg', False)
+groundMtl.loadTexture(MaterialTextureSlot.Specular, 'textures/Gravel032_1K_Roughness.jpg', False)
+groundMtl.roughness = 1
+groundMtl.metallic = 0
 
 wheelMtl = StandardMaterial('wheelMtl')
 wheelMtl.loadTexture(MaterialTextureSlot.BaseColor, 'textures/TyreTex.png', True)
 wheelMtl.loadTexture(MaterialTextureSlot.Normal, 'textures/TyreNorm.png', True)
+wheelMtl.roughness = 1
+wheelMtl.metallic = 0
 
 carMtl = StandardMaterial('carMtl')
-carMtl.loadTexture(MaterialTextureSlot.BaseColor, 'textures/Metal031_1K_Color.png', True)
-carMtl.loadTexture(MaterialTextureSlot.Normal, 'textures/Metal031_1K_NormalDX.png', True)
-carMtl.loadTexture(MaterialTextureSlot.Specular, 'textures/Metal031_1K_NormalDX.png', True)
+carMtl.loadTexture(MaterialTextureSlot.BaseColor, 'textures/Metal031_1K_Color.jpg', True)
+carMtl.loadTexture(MaterialTextureSlot.Normal, 'textures/Metal031_1K_NormalGL.jpg', True)
+carMtl.loadTexture(MaterialTextureSlot.Specular, 'textures/Metal031_1K_Roughness.jpg', True)
 carMtl.metallic = 0.9
 carMtl.roughness = 0.3
 
-# Load Meshes
+# Core meshes
 terrainNode = sceneBuilder.addNode('Terrain', Transform(scaling=float3(1.0, 1.0, 1.0)))
 fwdWheelLeftNode = sceneBuilder.addNode('FwdLeftWheel', Transform(scaling=float3(1.0, 1.0, 1.0)))
 fwdWheelRightNode = sceneBuilder.addNode('FwdRightWheel', Transform(scaling=float3(1.0, 1.0, 1.0)))
@@ -60,7 +67,7 @@ fwdWheelLeftMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('whe
 fwdWheelRightMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('wheel.obj', smoothNormals=False), wheelMtl)
 rearWheelLeftMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('wheel.obj', smoothNormals=False), wheelMtl)
 rearWheelRightMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('wheel.obj', smoothNormals=False), wheelMtl)
-chassisMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('chassis.obj', smoothNormals=False), carMtl)
+chassisMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('chassis.obj', smoothNormals=False), mirror)
 
 sceneBuilder.addMeshInstance(terrainNode, terrainMesh)
 sceneBuilder.addMeshInstance(fwdWheelLeftNode, fwdWheelLeftMesh)
@@ -69,12 +76,31 @@ sceneBuilder.addMeshInstance(rearWheelLeftNode, rearWheelLeftMesh)
 sceneBuilder.addMeshInstance(rearWheelRightNode, rearWheelRightMesh)
 sceneBuilder.addMeshInstance(chassisNode, chassisMesh)
 
-# Add environment map
-# envMap = EnvMap('test_scenes/envmaps/20050806-03_hd.hdr')
-# envMap.intensity = 1.0
-# sceneBuilder.envMap = envMap
+# Additional meshes
+for i in range(-500, 500, 50):
+    for j in range(-500, 500, 50):
+        additionalMeshNode = None
+        additionalMesh = None
+        random_shape = random.randint(0, 1)
+        random_mat = random.randint(0, 1)
+        random_size_sphere = random.randint(15, 20)
+        random_size_cube = random.randint(750, 1000)
+        if random_shape == 0:
+            additionalMeshNode = sceneBuilder.addNode('AdditionalCube'+str(i)+str(j), Transform(translation=float3(i, 200, j)))
+            if random_mat == 0:
+                additionalMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createSphere(radius=random_size_sphere), blue)
+            elif random_mat == 1:
+                additionalMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createSphere(radius=random_size_sphere), red)
 
-# Add camera
+        elif random_shape == 1:
+            additionalMeshNode = sceneBuilder.addNode('AdditionalCube'+str(i)+str(j), Transform(translation=float3(i, 0, j)))
+            if random_mat == 0:
+                additionalMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createCube(size=float3(1, random_size_cube, 1)), blue)
+            elif random_mat == 1:
+                additionalMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createCube(size=float3(1, random_size_cube, 1)), red)
+
+        sceneBuilder.addMeshInstance(additionalMeshNode, additionalMesh)
+
 camera = Camera()
 camera.position = float3(150, 150, 150)
 camera.target = float3(-0.7014234066009522, 1.4863656759262086, 1.6192376613616944)
@@ -82,14 +108,17 @@ camera.up = float3(0, 1, 0)
 camera.focalLength = 21.0
 sceneBuilder.addCamera(camera)
 
-# Add directional light
-dirLight = DirectionalLight('Directional light')
+dirLight = DirectionalLight('Directional light 1')
 dirLight.intensity = float3(1.0, 0.77, 0.54)
-dirLight.direction = float3(0.6245101094245911, -0.7170000076293945, -0.3096744418144226)
+dirLight.direction = float3(0.6245101094245911, -0.85, -0.3096744418144226)
 sceneBuilder.addLight(dirLight)
 
-# Add point light
-pointLight = PointLight('Point light')
-pointLight.intensity = float3(10, 10, 10)
-pointLight.position = float3(150, 150, 150)
-sceneBuilder.addLight(pointLight)
+dirLight2 = DirectionalLight('Directional light 2')
+dirLight2.intensity = float3(0.54, 0.77, 1.0)
+dirLight2.direction = float3(-0.6245101094245911, -0.85, 0.3096744418144226)
+sceneBuilder.addLight(dirLight2)
+
+dirLight3 = DirectionalLight('Directional light 3')
+dirLight3.intensity = float3(0.54, 0.77, 1.0)
+dirLight3.direction = float3(0, 1, 0)
+sceneBuilder.addLight(dirLight3)
