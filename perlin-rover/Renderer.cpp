@@ -1,49 +1,49 @@
-/***************************************************************************
- # Copyright (c) 2015-23, NVIDIA CORPORATION. All rights reserved.
- #
- # Redistribution and use in source and binary forms, with or without
- # modification, are permitted provided that the following conditions
- # are met:
- #  * Redistributions of source code must retain the above copyright
- #    notice, this list of conditions and the following disclaimer.
- #  * Redistributions in binary form must reproduce the above copyright
- #    notice, this list of conditions and the following disclaimer in the
- #    documentation and/or other materials provided with the distribution.
- #  * Neither the name of NVIDIA CORPORATION nor the names of its
- #    contributors may be used to endorse or promote products derived
- #    from this software without specific prior written permission.
- #
- # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS "AS IS" AND ANY
- # EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- # PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- # CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- # PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- # PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- **************************************************************************/
 #include "Renderer.h"
-#include "Utils/Math/FalcorMath.h"
-#include "Utils/UI/TextRenderer.h"
 
-static const float4 kClearColor(0.38f, 0.52f, 0.10f, 1);
-static const std::string kDefaultScene = "Arcade/Arcade.pyscene";
+#include "Scene/Animation/AnimationController.h"
 
-Renderer::Renderer(const SampleAppConfig& config) : SampleApp(config) {}
+static const Falcor::float4 kClearColor(0.38f, 0.52f, 0.10f, 1);
+static const std::string kDefaultScene = "scene.pyscene";
 
-Renderer::~Renderer() {}
+Renderer::Renderer(const Falcor::SampleAppConfig& config) : SampleApp(config) {}
 
-void Renderer::onLoad(RenderContext* pRenderContext)
+Renderer::~Renderer() 
 {
-    if (getDevice()->isFeatureSupported(Device::SupportedFeatures::Raytracing) == false)
+	delete mVehicle;
+	delete mTempAllocator;
+	delete mJobSystem;
+	delete mBroadPhaseLayerInterface;
+	delete mObjectVsBroadPhaseLayerFilter;
+	delete mObjectVsObjectLayerFilter;
+    delete mPhysics;
+}
+
+void Renderer::onLoad(Falcor::RenderContext* pRenderContext)
+{
+    if (getDevice()->isFeatureSupported(Falcor::Device::SupportedFeatures::Raytracing) == false)
     {
-        throw RuntimeError("Device does not support raytracing!");
+        throw Falcor::RuntimeError("Device does not support raytracing!");
     }
 
     loadScene(kDefaultScene, getTargetFbo().get());
+
+    JPH::RegisterDefaultAllocator();
+    JPH::Factory::sInstance = new JPH::Factory();
+    JPH::RegisterTypes();
+    mTempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
+    mJobSystem = new JPH::JobSystemThreadPool(2048, 8, std::thread::hardware_concurrency() - 1);
+    mBroadPhaseLayerInterface = new JPHUtil::BPLayerInterfaceImpl();
+    mObjectVsBroadPhaseLayerFilter = new JPHUtil::ObjectVsBroadPhaseLayerFilterImpl();
+    mObjectVsObjectLayerFilter = new JPHUtil::ObjectLayerPairFilterImpl();
+
+    mPhysics = new JPH::PhysicsSystem();
+    mPhysics->Init(65536, 0, 1024, 1024, *mBroadPhaseLayerInterface, *mObjectVsBroadPhaseLayerFilter, *mObjectVsObjectLayerFilter);
+
+    TerrainHandler terrainHandler(*mPhysics);
+    mVehicle = new VehicleHandler(*mPhysics);
+
+    mFirstFrame = true;
+    mPreviousTime = std::chrono::steady_clock::now();
 }
 
 void Renderer::onResize(uint32_t width, uint32_t height)
@@ -58,21 +58,57 @@ void Renderer::onResize(uint32_t width, uint32_t height)
         mpCamera->setAspectRatio(aspectRatio);
     }
 
-    mpRtOut = Texture::create2D(
-        getDevice(), width, height, ResourceFormat::RGBA16Float, 1, 1, nullptr,
-        Resource::BindFlags::UnorderedAccess | Resource::BindFlags::ShaderResource
+    mpRtOut = Falcor::Texture::create2D(
+        getDevice(), width, height, Falcor::ResourceFormat::RGBA16Float, 1, 1, nullptr,
+        Falcor::Resource::BindFlags::UnorderedAccess | Falcor::Resource::BindFlags::ShaderResource
     );
 }
 
-void Renderer::onFrameRender(RenderContext* pRenderContext, const ref<Fbo>& pTargetFbo)
+void Renderer::onFrameRender(Falcor::RenderContext* pRenderContext, const Falcor::ref<Falcor::Fbo>& pTargetFbo)
 {
-    pRenderContext->clearFbo(pTargetFbo.get(), kClearColor, 1.0f, 0, FboAttachmentType::All);
+    pRenderContext->clearFbo(pTargetFbo.get(), kClearColor, 1.0f, 0, Falcor::FboAttachmentType::All);
 
     if (mpScene)
     {
-        Scene::UpdateFlags updates = mpScene->update(pRenderContext, getGlobalClock().getTime());
-        if (is_set(updates, Scene::UpdateFlags::GeometryChanged))
-            throw RuntimeError("This sample does not support scene geometry changes.");
+        std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+        std::chrono::duration<float> deltaTime;
+        if (mFirstFrame)
+        {
+            deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - currentTime);
+            mFirstFrame = false;
+        }
+        else 
+            deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - mPreviousTime);
+		mPreviousTime = currentTime;
+        
+        mPhysics->Update(deltaTime.count(), 1, mTempAllocator, mJobSystem);
+        mVehicle->Update(*mPhysics, mKeyHandler.Fwd, mKeyHandler.Bwd, mKeyHandler.Lft, mKeyHandler.Rht);
+        
+        JPH::RVec3 wheelFwdLeftPos = mVehicle->GetWheel(VehicleHandler::EWheel::FrontLeft)->GetBody2()->GetPosition();
+        JPH::Quat wheelFwdLeftRot = mVehicle->GetWheel(VehicleHandler::EWheel::FrontLeft)->GetBody2()->GetRotation();
+        JPH::RVec3 wheelFwdRightPos = mVehicle->GetWheel(VehicleHandler::EWheel::FrontRight)->GetBody2()->GetPosition();
+        JPH::Quat wheelFwdRightRot = mVehicle->GetWheel(VehicleHandler::EWheel::FrontRight)->GetBody2()->GetRotation();
+        JPH::RVec3 wheelRearLeftPos = mVehicle->GetWheel(VehicleHandler::EWheel::RearLeft)->GetBody2()->GetPosition();
+        JPH::Quat wheelRearLeftRot = mVehicle->GetWheel(VehicleHandler::EWheel::RearLeft)->GetBody2()->GetRotation();
+        JPH::RVec3 wheelRearRightPos = mVehicle->GetWheel(VehicleHandler::EWheel::RearRight)->GetBody2()->GetPosition();
+        JPH::Quat wheelRearRightRot = mVehicle->GetWheel(VehicleHandler::EWheel::RearRight)->GetBody2()->GetRotation();
+        JPH::RVec3 chassisPos = mVehicle->GetChassis()->GetPosition();
+        JPH::Quat chassisRot = mVehicle->GetChassis()->GetRotation();
+        
+		mVehicle->UpdateVehicle(wheelFwdLeftPos, wheelFwdLeftRot, wheelFwdRightPos, wheelFwdRightRot, wheelRearLeftPos, wheelRearLeftRot, wheelRearRightPos, wheelRearRightRot, chassisPos, chassisRot);
+
+        UpdateMesh(1, *mVehicle->GetPartTransform(VehicleHandler::EWheel::FrontLeft));
+		UpdateMesh(2, *mVehicle->GetPartTransform(VehicleHandler::EWheel::FrontRight));
+		UpdateMesh(3, *mVehicle->GetPartTransform(VehicleHandler::EWheel::RearLeft));
+		UpdateMesh(4, *mVehicle->GetPartTransform(VehicleHandler::EWheel::RearRight));
+		UpdateMesh(5, *mVehicle->GetPartTransform(VehicleHandler::EWheel::Num));
+
+        std::cout << mVehicle->GetPartTransform(VehicleHandler::EWheel::Num)->getTranslation().y << std::endl;
+
+        mpCamera->setPosition(mVehicle->cameraAnchor);
+        mpCamera->setTarget(mVehicle->cameraTargetAnchor);
+        
+        Falcor::Scene::UpdateFlags updates = mpScene->update(pRenderContext, getGlobalClock().getTime());
 
         if (mRayTrace)
             renderRT(pRenderContext, pTargetFbo);
@@ -83,47 +119,31 @@ void Renderer::onFrameRender(RenderContext* pRenderContext, const ref<Fbo>& pTar
     getTextRenderer().render(pRenderContext, getFrameRate().getMsg(), pTargetFbo, { 20, 20 });
 }
 
-void Renderer::onGuiRender(Gui* pGui)
+bool Renderer::onKeyEvent(const Falcor::KeyboardEvent& keyEvent)
 {
-    Gui::Window w(pGui, "Hello DXR Settings", { 300, 400 }, { 10, 80 });
-
-    w.checkbox("Ray Trace", mRayTrace);
-    w.checkbox("Use Depth of Field", mUseDOF);
-    if (w.button("Load Scene"))
-    {
-        std::filesystem::path path;
-        if (openFileDialog(Scene::getFileExtensionFilters(), path))
-        {
-            loadScene(path, getTargetFbo().get());
-        }
-    }
-
-    mpScene->renderUI(w);
-}
-
-bool Renderer::onKeyEvent(const KeyboardEvent& keyEvent)
-{
-    if (keyEvent.key == Input::Key::Space && keyEvent.type == KeyboardEvent::Type::KeyPressed)
+    if (keyEvent.key == Falcor::Input::Key::Space && keyEvent.type == Falcor::KeyboardEvent::Type::KeyPressed)
     {
         mRayTrace = !mRayTrace;
         return true;
     }
 
-    if (mpScene && mpScene->onKeyEvent(keyEvent))
+    if (mpScene)
+    {
+        mKeyHandler.HandleEvent(keyEvent);
         return true;
+    }
 
     return false;
 }
 
-bool Renderer::onMouseEvent(const MouseEvent& mouseEvent)
-{
-    return mpScene && mpScene->onMouseEvent(mouseEvent);
-}
-
-void Renderer::loadScene(const std::filesystem::path& path, const Fbo* pTargetFbo)
-{
-    mpScene = Scene::create(getDevice(), path);
+void Renderer::loadScene(const std::filesystem::path& path, const Falcor::Fbo* pTargetFbo)
+{    
+    mpScene = Falcor::Scene::create(getDevice(), path);
     mpCamera = mpScene->getCamera();
+
+    mpScene->setIsAnimated(true);
+	mpScene->toggleAnimations(true);
+    mpScene->setIsLooped(false);
 
     // Update the controllers
     float radius = mpScene->getSceneBounds().radius();
@@ -143,12 +163,12 @@ void Renderer::loadScene(const std::filesystem::path& path, const Fbo* pTargetFb
 
     // Create raster pass.
     // This utility wraps the creation of the program and vars, and sets the necessary scene defines.
-    Program::Desc rasterProgDesc;
+    Falcor::Program::Desc rasterProgDesc;
     rasterProgDesc.addShaderModules(shaderModules);
     rasterProgDesc.addShaderLibrary("Samples/HelloDXR/HelloDXR.3d.slang").vsEntry("vsMain").psEntry("psMain");
     rasterProgDesc.addTypeConformances(typeConformances);
 
-    mpRasterPass = RasterPass::create(getDevice(), rasterProgDesc, defines);
+    mpRasterPass = Falcor::RasterPass::create(getDevice(), rasterProgDesc, defines);
 
     // We'll now create a raytracing program. To do that we need to setup two things:
     // - A program description (RtProgram::Desc). This holds all shader entry points, compiler flags, macro defintions,
@@ -161,7 +181,7 @@ void Renderer::loadScene(const std::filesystem::path& path, const Fbo* pTargetFb
     // Scene-specific and needs to be re-created when switching scene. In this example, we re-create both the program
     // and vars when a scene is loaded.
 
-    RtProgram::Desc rtProgDesc;
+    Falcor::RtProgram::Desc rtProgDesc;
     rtProgDesc.addShaderModules(shaderModules);
     rtProgDesc.addShaderLibrary("Samples/HelloDXR/HelloDXR.rt.slang");
     rtProgDesc.addTypeConformances(typeConformances);
@@ -171,32 +191,32 @@ void Renderer::loadScene(const std::filesystem::path& path, const Fbo* pTargetFb
     rtProgDesc.setMaxPayloadSize(24);        // The largest ray payload struct (PrimaryRayData) is 24 bytes. The payload size
     // should be set as small as possible for maximum performance.
 
-    ref<RtBindingTable> sbt = RtBindingTable::create(2, 2, mpScene->getGeometryCount());
+    Falcor::ref<Falcor::RtBindingTable> sbt = Falcor::RtBindingTable::create(2, 2, mpScene->getGeometryCount());
     sbt->setRayGen(rtProgDesc.addRayGen("rayGen"));
     sbt->setMiss(0, rtProgDesc.addMiss("primaryMiss"));
     sbt->setMiss(1, rtProgDesc.addMiss("shadowMiss"));
     auto primary = rtProgDesc.addHitGroup("primaryClosestHit", "primaryAnyHit");
     auto shadow = rtProgDesc.addHitGroup("", "shadowAnyHit");
-    sbt->setHitGroup(0, mpScene->getGeometryIDs(Scene::GeometryType::TriangleMesh), primary);
-    sbt->setHitGroup(1, mpScene->getGeometryIDs(Scene::GeometryType::TriangleMesh), shadow);
+    sbt->setHitGroup(0, mpScene->getGeometryIDs(Falcor::Scene::GeometryType::TriangleMesh), primary);
+    sbt->setHitGroup(1, mpScene->getGeometryIDs(Falcor::Scene::GeometryType::TriangleMesh), shadow);
 
-    mpRaytraceProgram = RtProgram::create(getDevice(), rtProgDesc, defines);
-    mpRtVars = RtProgramVars::create(getDevice(), mpRaytraceProgram, sbt);
+    mpRaytraceProgram = Falcor::RtProgram::create(getDevice(), rtProgDesc, defines);
+    mpRtVars = Falcor::RtProgramVars::create(getDevice(), mpRaytraceProgram, sbt);
 }
 
-void Renderer::setPerFrameVars(const Fbo* pTargetFbo)
+void Renderer::setPerFrameVars(const Falcor::Fbo* pTargetFbo)
 {
     auto var = mpRtVars->getRootVar();
     var["PerFrameCB"]["invView"] = inverse(mpCamera->getViewMatrix());
-    var["PerFrameCB"]["viewportDims"] = float2(pTargetFbo->getWidth(), pTargetFbo->getHeight());
-    float fovY = focalLengthToFovY(mpCamera->getFocalLength(), Camera::kDefaultFrameHeight);
+    var["PerFrameCB"]["viewportDims"] = Falcor::float2(pTargetFbo->getWidth(), pTargetFbo->getHeight());
+    float fovY = Falcor::focalLengthToFovY(mpCamera->getFocalLength(), Falcor::Camera::kDefaultFrameHeight);
     var["PerFrameCB"]["tanHalfFovY"] = std::tan(fovY * 0.5f);
     var["PerFrameCB"]["sampleIndex"] = mSampleIndex++;
     var["PerFrameCB"]["useDOF"] = mUseDOF;
     var["gOutput"] = mpRtOut;
 }
 
-void Renderer::renderRaster(RenderContext* pRenderContext, const ref<Fbo>& pTargetFbo)
+void Renderer::renderRaster(Falcor::RenderContext* pRenderContext, const Falcor::ref<Falcor::Fbo>& pTargetFbo)
 {
     FALCOR_ASSERT(mpScene);
     FALCOR_PROFILE(pRenderContext, "renderRaster");
@@ -205,7 +225,7 @@ void Renderer::renderRaster(RenderContext* pRenderContext, const ref<Fbo>& pTarg
     mpScene->rasterize(pRenderContext, mpRasterPass->getState().get(), mpRasterPass->getVars().get());
 }
 
-void Renderer::renderRT(RenderContext* pRenderContext, const ref<Fbo>& pTargetFbo)
+void Renderer::renderRT(Falcor::RenderContext* pRenderContext, const Falcor::ref<Falcor::Fbo>& pTargetFbo)
 {
     FALCOR_ASSERT(mpScene);
     FALCOR_PROFILE(pRenderContext, "renderRT");
@@ -213,6 +233,11 @@ void Renderer::renderRT(RenderContext* pRenderContext, const ref<Fbo>& pTargetFb
     setPerFrameVars(pTargetFbo.get());
 
     pRenderContext->clearUAV(mpRtOut->getUAV().get(), kClearColor);
-    mpScene->raytrace(pRenderContext, mpRaytraceProgram.get(), mpRtVars, uint3(pTargetFbo->getWidth(), pTargetFbo->getHeight(), 1));
+    mpScene->raytrace(pRenderContext, mpRaytraceProgram.get(), mpRtVars, Falcor::uint3(pTargetFbo->getWidth(), pTargetFbo->getHeight(), 1));
     pRenderContext->blit(mpRtOut->getSRV(), pTargetFbo->getRenderTargetView(0));
+}
+
+void Renderer::UpdateMesh(int nodeID, Falcor::Transform transform)
+{
+	mpScene->updateNodeTransform(nodeID, transform.getMatrix());
 }

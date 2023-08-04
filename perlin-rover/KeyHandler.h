@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Falcor.h"
+
 class KeyHandler
 {
 public:
-	void update();
+	void HandleEvent(const Falcor::KeyboardEvent& keyEvent);
 
 	bool Fwd = false;
 	bool Bwd = false;
@@ -11,8 +13,6 @@ public:
 	bool Rht = false;
 
 private:
-	void KeyPressed();
-	void KeyReleased();
 	float mSensitivity = 0.1f;
 	float mSpeed = 1.0f;
 };

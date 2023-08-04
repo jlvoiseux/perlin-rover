@@ -30,6 +30,9 @@
     <ClCompile Include="VehicleHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utilities.h">
@@ -44,5 +47,16 @@
     <ClInclude Include="VehicleHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="settings.json">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="media\scene.pyscene">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

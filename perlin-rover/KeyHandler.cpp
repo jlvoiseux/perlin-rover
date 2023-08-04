@@ -1,33 +1,27 @@
 #include "KeyHandler.h"
 
-void KeyHandler::KeyPressed()
+void KeyHandler::HandleEvent(const Falcor::KeyboardEvent& keyEvent)
 {
-	/*if (IsKeyPressed(KEY_W))
-		Fwd = true;
-	else if (IsKeyPressed(KEY_S))
-		Bwd = true;
-	else if (IsKeyPressed(KEY_A))
-		Lft = true;
-	else if (IsKeyPressed(KEY_D))
-		Rht = true;*/
-}
-
-
-void KeyHandler::KeyReleased()
-{
-	/*if (IsKeyReleased(KEY_W))
-		Fwd = false;
-	else if (IsKeyReleased(KEY_S))
-		Bwd = false;
-	else if (IsKeyReleased(KEY_A))
-		Lft = false;
-	else if (IsKeyReleased(KEY_D))
-		Rht = false;*/
-}
-
-
-void KeyHandler::update()
-{
-	KeyPressed();
-	KeyReleased();
+	if (keyEvent.type == Falcor::KeyboardEvent::Type::KeyPressed)
+	{
+		if (keyEvent.key == Falcor::Input::Key::W)
+			Fwd = true;
+		else if (keyEvent.key == Falcor::Input::Key::S)
+			Bwd = true;
+		else if (keyEvent.key == Falcor::Input::Key::A)
+			Lft = true;
+		else if (keyEvent.key == Falcor::Input::Key::D)
+			Rht = true;
+	}
+	else if (keyEvent.type == Falcor::KeyboardEvent::Type::KeyReleased)
+	{
+		if (keyEvent.key == Falcor::Input::Key::W)
+			Fwd = false;
+		else if (keyEvent.key == Falcor::Input::Key::S)
+			Bwd = false;
+		else if (keyEvent.key == Falcor::Input::Key::A)
+			Lft = false;
+		else if (keyEvent.key == Falcor::Input::Key::D)
+			Rht = false;
+	}
 }

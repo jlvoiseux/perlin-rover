@@ -57,3 +57,36 @@ namespace JPHUtil
 		virtual void OnContactRemoved(const SubShapeIDPair& inSubShapePair) override;
 	};
 }
+
+namespace OBJUtil
+{
+	struct Vertex
+	{
+		float x, y, z;
+	};
+
+	struct UV
+	{
+		float u, v;
+	};
+
+	struct Normal
+	{
+		float nx, ny, nz;
+	};
+
+	struct Triangle
+	{
+		int v1, v2, v3;
+		int uv1, uv2, uv3;
+		int n1, n2, n3;
+	};
+
+	class OBJExporter
+	{
+	public:
+		static void SaveToObj(const std::vector<Vertex>& vertices, 
+			const std::vector<UV>& uvs, const std::vector<Normal>& normals,
+			const std::vector<Triangle>& triangles, const std::string& filename);
+	};
+}

@@ -20,9 +20,6 @@ cd .\JoltPhysics\Build
 - In `Configuration Properties > C/C++ > Code Generation > Runtime Library`, select `Multi-threaded Debug DLL` and click apply.
 - Build the solution
 
-### Raylib
-- Download [Raylib static lib](https://github.com/raysan5/raylib/releases/download/4.5.0/raylib-4.5.0_win64_msvc16.zip) and unzip its contents in a folder named `raylib`
-
 ### STB
 - Clone stb
 ```
@@ -38,3 +35,23 @@ cd .\Falcor\
 ```
 - Open the solution found in `.\Falcor\build\windows-vs2022` and build the whole solution
 
+
+### TODO
+- Good follow camera
+- Sculpt nice terrain
+- Nice 3d vehicle
+- Prepare materials
+- Final scene
+- Prepare final repos (Fork Falcor, change Animation controller.cpp:295)
+
+### Some notes about Falcor
+- Media paths are set through settings.json
+- Copying the binary output of Falcor is mandatory - shaders are looked for in `getRuntimeDirectory() / "shaders"`. See `.\Falcor\Source\Falcor\Core\Platform\OS.cpp:64`
+
+## Third-party licenses:
+### JoltPhysics
+### Falcor
+### STB
+### Textures
+Created using Gravel032, Plastic012A, Metal009, Metal031 from ambientCG.com,
+licensed under the Creative Commons CC0 1.0 Universal License.

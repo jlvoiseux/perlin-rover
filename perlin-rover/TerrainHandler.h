@@ -11,18 +11,14 @@
 struct Terrain
 {
 	JPH::Body* physicsTerrain;
-	//Mesh* meshTerrain;
 };
 
 class TerrainHandler
 {
 public:
 	TerrainHandler(JPH::PhysicsSystem& ph);
-	void DrawTerrain();
 private:
 	Terrain* GenerateTerrain(JPH::PhysicsSystem& ph);
-	//void CreateTerrainTriangle(Mesh& mesh, JPH::Float3 v0, JPH::Float3 v1, JPH::Float3 v2, int vertexIndex, int texCoordIndex);
 
 	Terrain* mTerrain;
-	//Model mTerrainModel;
 };
