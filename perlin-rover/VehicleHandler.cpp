@@ -9,10 +9,10 @@ VehicleHandler::VehicleHandler(JPH::PhysicsSystem& ph)
 
     JPH::Vec3 wheelPosition[] =
     {
-        JPH::Vec3(-1.75 * mHalfVehicleWidth, -mHalfVehicleHeight, mHalfVehicleLength - 2.0f * mHalfWheelHeight),
-        JPH::Vec3(1.75 * mHalfVehicleWidth, -mHalfVehicleHeight, mHalfVehicleLength - 2.0f * mHalfWheelHeight),
-        JPH::Vec3(-1.75 * mHalfVehicleWidth, -mHalfVehicleHeight, -mHalfVehicleLength - 1.0f * mHalfWheelHeight),
-        JPH::Vec3(1.75 * mHalfVehicleWidth, -mHalfVehicleHeight, -mHalfVehicleLength - 1.0f * mHalfWheelHeight),
+        JPH::Vec3(-1.2f * mHalfVehicleWidth, -0.5f * mHalfVehicleHeight, mHalfVehicleLength - 2.0f * mHalfWheelHeight),
+        JPH::Vec3(1.2f * mHalfVehicleWidth, -0.5f * mHalfVehicleHeight, mHalfVehicleLength - 2.0f * mHalfWheelHeight),
+        JPH::Vec3(-1.2f * mHalfVehicleWidth, -0.5f * mHalfVehicleHeight, -mHalfVehicleLength + 2.0f * mHalfWheelHeight),
+        JPH::Vec3(1.2f * mHalfVehicleWidth, -0.5f * mHalfVehicleHeight, -mHalfVehicleLength + 2.0f * mHalfWheelHeight),
     };
 
     JPH::RVec3 position(START_X, START_Y, START_Z);
@@ -63,7 +63,7 @@ VehicleHandler::VehicleHandler(JPH::PhysicsSystem& ph)
 
         // The main engine drives the X axis
         settings.MakeFreeAxis(JPH::SixDOFConstraintSettings::EAxis::RotationX);
-        settings.mMotorSettings[JPH::SixDOFConstraintSettings::EAxis::RotationX] = JPH::MotorSettings(2.0f, 1.0f, 0.0f, 0.5e4f);
+        settings.mMotorSettings[JPH::SixDOFConstraintSettings::EAxis::RotationX] = JPH::MotorSettings(8.0f, 4.0f, 0.0f, 2e4f);
 
         // The front wheel needs to be able to steer around the Y axis
         // However the motors work in the constraint space of the wheel, and since this rotates around the 
@@ -88,12 +88,6 @@ VehicleHandler::VehicleHandler(JPH::PhysicsSystem& ph)
             wheelConstraint->SetMotorState(JPH::SixDOFConstraintSettings::RotationZ, JPH::EMotorState::Position);
         }
     }
-
-    mWheelFwdLeftModel = LoadModelFromMesh(GenMeshCylinder(mHalfWheelHeight, 2 * mHalfWheelWidth, 32));
-	mWheelFwdRightModel = LoadModelFromMesh(GenMeshCylinder(mHalfWheelHeight, 2 * mHalfWheelWidth, 32));
-	mWheelRearLeftModel = LoadModelFromMesh(GenMeshCylinder(mHalfWheelHeight, 2 * mHalfWheelWidth, 32));
-	mWheelRearRightModel = LoadModelFromMesh(GenMeshCylinder(mHalfWheelHeight, 2 * mHalfWheelWidth, 32));
-	mChassisModel = LoadModelFromMesh(GenMeshCube(mHalfVehicleWidth * 2, mHalfVehicleHeight * 2, mHalfVehicleLength * 2.0f));
 }
 
 
@@ -168,7 +162,7 @@ void VehicleHandler::Update(JPH::PhysicsSystem& ph, bool fwdFlag, bool bwdFlag, 
 }
 
 
-void VehicleHandler::DrawVehicle(
+void VehicleHandler::UpdateVehicle(
     JPH::RVec3 wheelFwdLeftPosArg,
     JPH::Quat wheelFwdLeftRotArg,
     JPH::RVec3 wheelFwdRightPosArg,
@@ -180,40 +174,34 @@ void VehicleHandler::DrawVehicle(
     JPH::RVec3 chassisPosArg,
     JPH::Quat chassisRotArg
 )
-{
-    Vector3 outAxis = Vector3One();
-    float outAngle = 0.0f;
-    
-    Vector3 wheelFwdLeftPos = Vector3{ wheelFwdLeftPosArg.GetX(), wheelFwdLeftPosArg.GetY() , wheelFwdLeftPosArg.GetZ() };
-	Quaternion wheelFwdLeftQuat = Quaternion{ wheelFwdLeftRotArg.GetW(), wheelFwdLeftRotArg.GetX(), wheelFwdLeftRotArg.GetY(), wheelFwdLeftRotArg.GetZ() };
-    QuaternionToAxisAngle(wheelFwdLeftQuat, &outAxis, &outAngle);
-    mWheelFwdLeftModel.transform = QuaternionToMatrix(QuaternionFromAxisAngle(Vector3{ outAxis.z, outAxis.y, outAxis.x }, outAngle));
-    DrawModelWires(mWheelFwdLeftModel, wheelFwdLeftPos, 1.0f, SKYBLUE);
+{   
+    mWheelFwdLeftTransform.setTranslation(Falcor::float3{ wheelFwdLeftPosArg.GetX(), wheelFwdLeftPosArg.GetY() , wheelFwdLeftPosArg.GetZ() });
+    mWheelFwdLeftTransform.setRotation(Falcor::quatf{ wheelFwdLeftRotArg.GetX(), wheelFwdLeftRotArg.GetY(), wheelFwdLeftRotArg.GetZ(), wheelFwdLeftRotArg.GetW() });
+    //mWheelFwdLeftTransform.setScaling(Falcor::float3{ mHalfWheelHeight, mHalfWheelWidth, mHalfWheelHeight });
 
-    Vector3 wheelFwdRightPos = Vector3{ wheelFwdRightPosArg.GetX(), wheelFwdRightPosArg.GetY() , wheelFwdRightPosArg.GetZ() };
-	Quaternion wheelFwdRightQuat = Quaternion{ wheelFwdRightRotArg.GetW(), wheelFwdRightRotArg.GetX(), wheelFwdRightRotArg.GetY(), wheelFwdRightRotArg.GetZ() };
-	QuaternionToAxisAngle(wheelFwdRightQuat, &outAxis, &outAngle);
-	mWheelFwdRightModel.transform = QuaternionToMatrix(QuaternionFromAxisAngle(Vector3{ outAxis.z, outAxis.y, outAxis.x }, outAngle));
-	DrawModelWires(mWheelFwdRightModel, wheelFwdRightPos, 1.0f, SKYBLUE);
+    mWheelFwdRightTransform.setTranslation(Falcor::float3{ wheelFwdRightPosArg.GetX(), wheelFwdRightPosArg.GetY() , wheelFwdRightPosArg.GetZ() });
+    mWheelFwdRightTransform.setRotation(Falcor::quatf{ wheelFwdRightRotArg.GetX(), wheelFwdRightRotArg.GetY(), wheelFwdRightRotArg.GetZ(), wheelFwdRightRotArg.GetW() });
+    //mWheelFwdRightTransform.setScaling(Falcor::float3{ mHalfWheelHeight, mHalfWheelWidth, mHalfWheelHeight });
     
-    Vector3 wheelRearLeftPos = Vector3{ wheelRearLeftPosArg.GetX(), wheelRearLeftPosArg.GetY() , wheelRearLeftPosArg.GetZ() };
-	Quaternion wheelRearLeftQuat = Quaternion{ wheelRearLeftRotArg.GetW(), wheelRearLeftRotArg.GetX(), wheelRearLeftRotArg.GetY(), wheelRearLeftRotArg.GetZ() };
-	QuaternionToAxisAngle(wheelRearLeftQuat, &outAxis, &outAngle);
-	mWheelRearLeftModel.transform = QuaternionToMatrix(QuaternionFromAxisAngle(Vector3{ outAxis.z, outAxis.y, outAxis.x }, outAngle));
-	DrawModelWires(mWheelRearLeftModel, wheelRearLeftPos, 1.0f, SKYBLUE);
+    mWheelRearLeftTransform.setTranslation(Falcor::float3{ wheelRearLeftPosArg.GetX(), wheelRearLeftPosArg.GetY() , wheelRearLeftPosArg.GetZ() });
+	mWheelRearLeftTransform.setRotation(Falcor::quatf{ wheelRearLeftRotArg.GetX(), wheelRearLeftRotArg.GetY(), wheelRearLeftRotArg.GetZ(), wheelRearLeftRotArg.GetW() });
+    //mWheelRearLeftTransform.setScaling(Falcor::float3{ mHalfWheelHeight,  mHalfWheelWidth, mHalfWheelHeight });
     
-    Vector3 wheelRearRightPos = Vector3{ wheelRearRightPosArg.GetX(), wheelRearRightPosArg.GetY() , wheelRearRightPosArg.GetZ() };
-	Quaternion wheelRearRightQuat = Quaternion{ wheelRearRightRotArg.GetW(), wheelRearRightRotArg.GetX(), wheelRearRightRotArg.GetY(), wheelRearRightRotArg.GetZ() };
-	QuaternionToAxisAngle(wheelRearRightQuat, &outAxis, &outAngle);
-	mWheelRearRightModel.transform = QuaternionToMatrix(QuaternionFromAxisAngle(Vector3{ outAxis.z, outAxis.y, outAxis.x }, outAngle));
-	DrawModelWires(mWheelRearRightModel, wheelRearRightPos, 1.0f, SKYBLUE);
+    mWheelRearRightTransform.setTranslation(Falcor::float3{ wheelRearRightPosArg.GetX(), wheelRearRightPosArg.GetY() , wheelRearRightPosArg.GetZ() });
+	mWheelRearRightTransform.setRotation(Falcor::quatf{ wheelRearRightRotArg.GetX(), wheelRearRightRotArg.GetY(), wheelRearRightRotArg.GetZ(), wheelRearRightRotArg.GetW() });
+    //mWheelRearRightTransform.setScaling(Falcor::float3{ mHalfWheelHeight, mHalfWheelWidth, mHalfWheelHeight });
     
-    Vector3 chassisPos = Vector3{ chassisPosArg.GetX(), chassisPosArg.GetY() , chassisPosArg.GetZ() };
-    Quaternion chassisQuat = Quaternion{ chassisRotArg.GetW(), chassisRotArg.GetX(), chassisRotArg.GetY(), chassisRotArg.GetZ() };
-    QuaternionToAxisAngle(chassisQuat, &outAxis, &outAngle);
-	mChassisModel.transform = QuaternionToMatrix(QuaternionFromAxisAngle(Vector3{ -outAxis.z, outAxis.y, -outAxis.x }, outAngle));
-	DrawModelWires(mChassisModel, chassisPos, 1.0f, RED);
+    mChassisTransform.setTranslation(Falcor::float3{ chassisPosArg.GetX(), chassisPosArg.GetY() , chassisPosArg.GetZ() });
+    mChassisTransform.setRotation(Falcor::quatf{ chassisRotArg.GetX(), chassisRotArg.GetY(), chassisRotArg.GetZ(), chassisRotArg.GetW() });
+    //mChassisTransform.setScaling(Falcor::float3{ mHalfVehicleWidth, mHalfVehicleHeight, mHalfVehicleLength });
 
-    cameraPositionAnchorPoint = Vector3Add(Vector3Scale(Vector3Add(wheelRearLeftPos, wheelRearRightPos), 0.5f), Vector3{ 0, 3, -5 });
-    cameraTargetAnchorPoint = Vector3Scale(Vector3Add(wheelFwdLeftPos, wheelFwdRightPos), 0.5f);
+    Falcor::float3 mFwdMiddle = (mWheelFwdLeftTransform.getTranslation() + mWheelFwdRightTransform.getTranslation()) / 2.0f;
+    Falcor::float3 mRearMiddle = (mWheelRearLeftTransform.getTranslation() + mWheelRearRightTransform.getTranslation()) / 2.0f;
+
+	Falcor::float3 frontDir = mFwdMiddle - mRearMiddle;
+	Falcor::float3 backDir = mRearMiddle - mFwdMiddle;
+
+	cameraTargetAnchor = mFwdMiddle + 2.0f * frontDir;
+	cameraAnchor = mRearMiddle + Falcor::float3{ 2.0f * backDir.x, backDir.y + 5.0f, 2.0f * backDir.z };
+	
   }

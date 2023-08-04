@@ -1,0 +1,95 @@
+# Create materials
+red = StandardMaterial('Red')
+red.baseColor = float4(0.8, 0.1, 0.1, 1.0)
+red.roughness = 0.3
+
+green = StandardMaterial('Green')
+green.baseColor = float4(0.1, 0.8, 0.1, 1.0)
+green.roughness = 0.2
+
+blue = StandardMaterial('Blue')
+blue.baseColor = float4(0.1, 0.1, 0.8, 1.0)
+blue.roughness = 0.3
+blue.metallic = 1
+
+groundMtl = StandardMaterial('groundMtl')
+groundMtl.loadTexture(MaterialTextureSlot.BaseColor, 'textures/Gravel032_1K_Color.png', True)
+groundMtl.loadTexture(MaterialTextureSlot.Normal, 'textures/Gravel032_1K_NormalDX.png', True)
+groundMtl.loadTexture(MaterialTextureSlot.Specular, 'textures/Gravel032_1K_Roughness.png', True)
+groundMtl.loadTexture(MaterialTextureSlot.Transmission, 'textures/Gravel032_1K_AmbientOcclusion.png', True)
+
+wheelMtl = StandardMaterial('wheelMtl')
+wheelMtl.loadTexture(MaterialTextureSlot.BaseColor, 'textures/TyreTex.png', True)
+wheelMtl.loadTexture(MaterialTextureSlot.Normal, 'textures/TyreNorm.png', True)
+
+carMtl = StandardMaterial('carMtl')
+carMtl.loadTexture(MaterialTextureSlot.BaseColor, 'textures/Metal031_1K_Color.png', True)
+carMtl.loadTexture(MaterialTextureSlot.Normal, 'textures/Metal031_1K_NormalDX.png', True)
+carMtl.loadTexture(MaterialTextureSlot.Specular, 'textures/Metal031_1K_NormalDX.png', True)
+carMtl.metallic = 0.9
+carMtl.roughness = 0.3
+
+# Load Meshes
+terrainNode = sceneBuilder.addNode('Terrain', Transform(scaling=float3(1.0, 1.0, 1.0)))
+fwdWheelLeftNode = sceneBuilder.addNode('FwdLeftWheel', Transform(scaling=float3(1.0, 1.0, 1.0)))
+fwdWheelRightNode = sceneBuilder.addNode('FwdRightWheel', Transform(scaling=float3(1.0, 1.0, 1.0)))
+rearWheelLeftNode = sceneBuilder.addNode('RearLeftWheel', Transform(scaling=float3(1.0, 1.0, 1.0)))
+rearWheelRightNode = sceneBuilder.addNode('RearRightWheel', Transform(scaling=float3(1.0, 1.0, 1.0)))
+chassisNode = sceneBuilder.addNode('Chassis', Transform(scaling=float3(1.0, 1.0, 1.0)))
+
+fwdWheelLeftNodeAnimation = Animation('FwdLeftWheelAnimation', 1, 0)
+fwdWheelRightNodeAnimation = Animation('FwdRightWheelAnimation', 2, 0)
+rearWheelLeftNodeAnimation = Animation('RearLeftWheelAnimation', 3, 0)
+rearWheelRightNodeAnimation = Animation('RearRightWheelAnimation', 4, 0)
+chassisNodeAnimation = Animation('ChassisAnimation', 5, 0)
+
+fwdWheelLeftNodeAnimation.addKeyframe(0, Transform())
+fwdWheelRightNodeAnimation.addKeyframe(0, Transform())
+rearWheelLeftNodeAnimation.addKeyframe(0, Transform())
+rearWheelRightNodeAnimation.addKeyframe(0, Transform())
+chassisNodeAnimation.addKeyframe(0, Transform())
+
+sceneBuilder.addAnimation(fwdWheelLeftNodeAnimation)
+sceneBuilder.addAnimation(fwdWheelRightNodeAnimation)
+sceneBuilder.addAnimation(rearWheelLeftNodeAnimation)
+sceneBuilder.addAnimation(rearWheelRightNodeAnimation)
+sceneBuilder.addAnimation(chassisNodeAnimation)
+
+terrainMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('terrain.obj', smoothNormals=False), groundMtl)
+fwdWheelLeftMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('wheel.obj', smoothNormals=False), wheelMtl)
+fwdWheelRightMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('wheel.obj', smoothNormals=False), wheelMtl)
+rearWheelLeftMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('wheel.obj', smoothNormals=False), wheelMtl)
+rearWheelRightMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('wheel.obj', smoothNormals=False), wheelMtl)
+chassisMesh = sceneBuilder.addTriangleMesh(TriangleMesh.createFromFile('chassis.obj', smoothNormals=False), carMtl)
+
+sceneBuilder.addMeshInstance(terrainNode, terrainMesh)
+sceneBuilder.addMeshInstance(fwdWheelLeftNode, fwdWheelLeftMesh)
+sceneBuilder.addMeshInstance(fwdWheelRightNode, fwdWheelRightMesh)
+sceneBuilder.addMeshInstance(rearWheelLeftNode, rearWheelLeftMesh)
+sceneBuilder.addMeshInstance(rearWheelRightNode, rearWheelRightMesh)
+sceneBuilder.addMeshInstance(chassisNode, chassisMesh)
+
+# Add environment map
+# envMap = EnvMap('test_scenes/envmaps/20050806-03_hd.hdr')
+# envMap.intensity = 1.0
+# sceneBuilder.envMap = envMap
+
+# Add camera
+camera = Camera()
+camera.position = float3(150, 150, 150)
+camera.target = float3(-0.7014234066009522, 1.4863656759262086, 1.6192376613616944)
+camera.up = float3(0, 1, 0)
+camera.focalLength = 21.0
+sceneBuilder.addCamera(camera)
+
+# Add directional light
+dirLight = DirectionalLight('Directional light')
+dirLight.intensity = float3(1.0, 0.77, 0.54)
+dirLight.direction = float3(0.6245101094245911, -0.7170000076293945, -0.3096744418144226)
+sceneBuilder.addLight(dirLight)
+
+# Add point light
+pointLight = PointLight('Point light')
+pointLight.intensity = float3(10, 10, 10)
+pointLight.position = float3(150, 150, 150)
+sceneBuilder.addLight(pointLight)

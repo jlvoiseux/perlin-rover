@@ -1,5 +1,6 @@
 #include "Utilities.h"
 
+#include <fstream>
 #include <iostream>
 
 JPHUtil::BPLayerInterfaceImpl::BPLayerInterfaceImpl()
@@ -90,4 +91,43 @@ void JPHUtil::VehicleContactListener::OnContactPersisted(const Body& inBody1, co
 
 void JPHUtil::VehicleContactListener::OnContactRemoved(const SubShapeIDPair& inSubShapePair)
 {
+}
+
+void OBJUtil::OBJExporter::SaveToObj(const std::vector<Vertex>& vertices, 
+    const std::vector<UV>& uvs, const std::vector<Normal>& normals, 
+    const std::vector<Triangle>& triangles, const std::string& filename)
+{
+    std::ofstream file(filename);
+    if (!file.is_open())
+    {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    for (const auto& vertex : vertices)
+    {
+        file << "v " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
+    }
+
+    for (const auto& uv : uvs)
+    {
+        file << "vt " << uv.u << " " << uv.v << "\n";
+    }
+
+    for (const auto& normal : normals)
+    {
+        file << "vn " << normal.nx << " " << normal.ny << " " << normal.nz << "\n";
+    }
+
+    for (const auto& triangle : triangles)
+    {
+        // OBJ uses 1-based indexing, so add 1 to each index
+        file << "f "
+            << triangle.v1 + 1 << "/" << triangle.uv1 + 1 << "/" << triangle.n1 + 1 << " "
+            << triangle.v2 + 1 << "/" << triangle.uv2 + 1 << "/" << triangle.n2 + 1 << " "
+            << triangle.v3 + 1 << "/" << triangle.uv3 + 1 << "/" << triangle.n3 + 1 << "\n";
+    }
+
+
+    file.close();
 }

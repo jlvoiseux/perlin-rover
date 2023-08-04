@@ -1,23 +1,24 @@
 #include "TerrainHandler.h"
+#include "Utilities.h"
 
 #include <iostream>
 
-//#define STB_IMAGE_IMPLEMENTATION
-//#include "stb_image.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
-#define TERRAIN_WORLD_SIZE 1000.0f
+#define CELL_SIZE 10.0f
+#define MAX_HEIGHT 250.0f
 
 TerrainHandler::TerrainHandler(JPH::PhysicsSystem& ph)
 {
     mTerrain = GenerateTerrain(ph);
-    mTerrainModel = LoadModelFromMesh(*mTerrain->meshTerrain);
 }
 
 
 Terrain* TerrainHandler::GenerateTerrain(JPH::PhysicsSystem& ph)
 {
-    /*int width, height, channels;
-    unsigned char* image = stbi_load("models/terrain.png", &width, &height, &channels, STBI_grey);
+    int width, height, channels;
+    unsigned char* image = stbi_load("terrain.png", &width, &height, &channels, STBI_grey);
     if (!image)
     {
         std::cerr << "Failed to load image." << std::endl;
@@ -26,119 +27,96 @@ Terrain* TerrainHandler::GenerateTerrain(JPH::PhysicsSystem& ph)
     {
         std::cerr << "Only square textures are supported." << std::endl;
     }
-    stbi_image_free(image);*/
-
-    Image image = LoadImage("terrain.png");
-    int width = image.width;
-    int height = image.height;
-    if (height != width)
-    {
-        std::cerr << "Only square textures are supported." << std::endl;
-    }
     
-    int n = height / 16;
+    int n = height;
 
-    std::vector<std::vector<unsigned char>> heightmap(n, std::vector<unsigned char>(n));
+   std::vector<std::vector<float>> heightmap(n, std::vector<float>(n));
 
     for (int x = 0; x < n; ++x)
     {
         for (int z = 0; z < n; ++z)
         {
-            /*unsigned char r = image[x * n + z];*/
-            Color pixelColor = GetImageColor(image, x, z);
-            heightmap[x][z] = pixelColor.r;
+            unsigned char r = image[x * n + z];
+            heightmap[x][z] = static_cast<float>(r) / 256.0f * MAX_HEIGHT;
         }
     }
 
-    const float cellSize = TERRAIN_WORLD_SIZE / n;
-    int renderTriangleCount = (n - 1) * (n - 1) * 2;
-    int vertexIndex = 0;
-    int texCoordIndex = 0;
+    stbi_image_free(image);
 
-    Mesh mesh = { 0 };
-    mesh.triangleCount = renderTriangleCount;
-    mesh.vertexCount = mesh.triangleCount * 3;
-    mesh.vertices = (float*)MemAlloc(mesh.vertexCount * 3 * sizeof(float));
-    mesh.texcoords = (float*)MemAlloc(mesh.vertexCount * 2 * sizeof(float));
-    mesh.normals = (float*)MemAlloc(mesh.vertexCount * 3 * sizeof(float));
+    n /= 4;
 
     // Possible improvement: use a HeightFieldTerrain
 
-    JPH::TriangleList triangles;
-    float center = n * cellSize / 2.0f;
+    JPH::TriangleList physTriangles;
+    std::vector<OBJUtil::Vertex> meshVertices;
+    std::vector<OBJUtil::UV> meshUVs;
+    std::vector<OBJUtil::Normal> meshNormals;
+    std::vector<OBJUtil::Triangle> meshTriangles;
+    int vertexIndex = 0;
+
+	meshUVs.push_back(OBJUtil::UV{ 0.0f, 0.0f });
+	meshUVs.push_back(OBJUtil::UV{ 1.0f, 0.0f });
+	meshUVs.push_back(OBJUtil::UV{ 0.0f, 1.0f });
+    meshUVs.push_back(OBJUtil::UV{ 1.0f, 1.0f });
+
+	meshNormals.push_back(OBJUtil::Normal{ 0.0f, 1.0f, 0.0f });
+    
+    float center = n * CELL_SIZE / 2.0f;
     for (int x = 0; x < n - 1; ++x)
     {
         for (int z = 0; z < n - 1; ++z)
         {
-            float x1 = cellSize * x - center;
-            float z1 = cellSize * z - center;
-            float x2 = x1 + cellSize;
-            float z2 = z1 + cellSize;
+            float x1 = CELL_SIZE * x - center;
+            float z1 = CELL_SIZE * z - center;
+            float x2 = x1 + CELL_SIZE;
+            float z2 = z1 + CELL_SIZE;
 
-            JPH::Float3 v1 = JPH::Float3(x1, heightmap[x][z], z1);
-            JPH::Float3 v2 = JPH::Float3(x2, heightmap[x + 1][z], z1);
-            JPH::Float3 v3 = JPH::Float3(x1, heightmap[x][z + 1], z2);
-            JPH::Float3 v4 = JPH::Float3(x2, heightmap[x + 1][z + 1], z2);
-            
-			JPH::Triangle t1 = JPH::Triangle(v1, v3, v4);
-			JPH::Triangle t2 = JPH::Triangle(v1, v4, v2);
+            JPH::Float3 v1p = JPH::Float3(x1, heightmap[x][z], z1);
+            JPH::Float3 v2p = JPH::Float3(x2, heightmap[x + 1][z], z1);
+            JPH::Float3 v3p = JPH::Float3(x1, heightmap[x][z + 1], z2);
+            JPH::Float3 v4p = JPH::Float3(x2, heightmap[x + 1][z + 1], z2);
 
-            triangles.push_back(t1);
-            triangles.push_back(t2);
+            JPH::Triangle t1p = JPH::Triangle(v1p, v3p, v4p);
+            JPH::Triangle t2p = JPH::Triangle(v1p, v4p, v2p);
 
-            CreateTerrainTriangle(mesh, v1, v3, v4, vertexIndex, texCoordIndex);
-            CreateTerrainTriangle(mesh, v1, v4, v2, vertexIndex, texCoordIndex);
-            vertexIndex += 18;
-            texCoordIndex += 12;
+            physTriangles.push_back(t1p);
+            physTriangles.push_back(t2p);
+
+            OBJUtil::Vertex v1m = OBJUtil::Vertex{ x1, static_cast<float>(heightmap[x][z]), z1 };
+			OBJUtil::Vertex v2m = OBJUtil::Vertex{ x2, static_cast<float>(heightmap[x + 1][z]), z1 };
+			OBJUtil::Vertex v3m = OBJUtil::Vertex{ x1, static_cast<float>(heightmap[x][z + 1]), z2 };
+			OBJUtil::Vertex v4m = OBJUtil::Vertex{ x2, static_cast<float>(heightmap[x + 1][z + 1]), z2 };
+
+            meshVertices.push_back(v1m);
+            meshVertices.push_back(v2m);
+            meshVertices.push_back(v3m);
+            meshVertices.push_back(v4m);
+
+			OBJUtil::Triangle t1m = OBJUtil::Triangle{ 
+                vertexIndex, vertexIndex + 2, vertexIndex + 3, 
+                0, 2, 3,
+                0, 0, 0
+            };
+			OBJUtil::Triangle t2m = OBJUtil::Triangle{ 
+                vertexIndex, vertexIndex + 3, vertexIndex + 1,
+                0, 3, 1,
+                0, 0, 0
+            };
+
+			meshTriangles.push_back(t1m);
+			meshTriangles.push_back(t2m);
+
+            vertexIndex += 4;
         }
     }
 
-    UploadMesh(&mesh, false);
+    OBJUtil::OBJExporter::SaveToObj(meshVertices, meshUVs, meshNormals, meshTriangles, "media/terrain.obj");
 
     // Floor
-    JPH::Body* floor = ph.GetBodyInterface().CreateBody(JPH::BodyCreationSettings(new JPH::MeshShapeSettings(triangles), JPH::RVec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Static, JPHUtil::NON_MOVING));
+    JPH::Body* floor = ph.GetBodyInterface().CreateBody(JPH::BodyCreationSettings(new JPH::MeshShapeSettings(physTriangles), JPH::RVec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Static, JPHUtil::NON_MOVING));
     floor->SetFriction(1.0f);
     ph.GetBodyInterface().AddBody(floor->GetID(), JPH::EActivation::Activate);
 
-    Terrain generatedTerrain = { floor, &mesh };
+    Terrain generatedTerrain = { floor };
     return &generatedTerrain;
-}
-
-
-void TerrainHandler::CreateTerrainTriangle(Mesh& mesh, JPH::Float3 v0, JPH::Float3 v1, JPH::Float3 v2, int vertexIndex, int texCoordIndex)
-{
-    mesh.vertices[vertexIndex] = v0.x;
-    mesh.vertices[vertexIndex + 1] = v0.y;
-    mesh.vertices[vertexIndex + 2] = v0.z;
-    mesh.normals[vertexIndex] = 0;
-    mesh.normals[vertexIndex + 1] = 1;
-    mesh.normals[vertexIndex + 2] = 0;
-    mesh.texcoords[texCoordIndex] = 0;
-    mesh.texcoords[texCoordIndex + 1] = 0;
-
-    // Vertex at (1, 0, 2)
-    mesh.vertices[vertexIndex + 3] = v1.x;
-    mesh.vertices[vertexIndex + 4] = v1.y;
-    mesh.vertices[vertexIndex + 5] = v1.z;
-    mesh.normals[vertexIndex + 3] = 0;
-    mesh.normals[vertexIndex + 4] = 1;
-    mesh.normals[vertexIndex + 5] = 0;
-    mesh.texcoords[texCoordIndex + 2] = 0.5f;
-    mesh.texcoords[texCoordIndex + 3] = 1.0f;
-
-    // Vertex at (2, 0, 0)
-    mesh.vertices[vertexIndex + 6] = v2.x;
-    mesh.vertices[vertexIndex + 7] = v2.y;
-    mesh.vertices[vertexIndex + 8] = v2.z;
-    mesh.normals[vertexIndex + 6] = 0;
-    mesh.normals[vertexIndex + 7] = 1;
-    mesh.normals[vertexIndex + 8] = 0;
-    mesh.texcoords[texCoordIndex + 4] = 1;
-    mesh.texcoords[texCoordIndex + 5] = 0;
-}
-
-
-void TerrainHandler::DrawTerrain()
-{
-    DrawModel(mTerrainModel, Vector3{ 0.0f, 0.0f, 0.0f }, 1.0f, WHITE);
 }

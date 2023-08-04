@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Falcor.h"
 #include "Jolt/Jolt.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Collision/GroupFilterTable.h"
@@ -7,14 +8,12 @@
 #include "Jolt/Physics/Collision/Shape/CylinderShape.h"
 #include "Jolt/Physics/Constraints/SixDOFConstraint.h"
 #include "Jolt/Physics/PhysicsSystem.h"
-#include "raylib.h"
-#include "raymath.h"
 
 #include "Utilities.h"
 
-#define START_X 100
-#define START_Y 200
-#define START_Z 100
+#define START_X 25
+#define START_Y 250
+#define START_Z 25
 
 class VehicleHandler
 {
@@ -26,7 +25,7 @@ public:
 	JPH::Body* GetChassis() { return mChassis; }
 	JPH::SixDOFConstraint* GetWheel(EWheel wheelType) { return mWheels[int(wheelType)]; }
 
-	void DrawVehicle(
+	void UpdateVehicle(
 		JPH::RVec3 wheelFwdLeftPosArg,
 		JPH::Quat wheelFwdLeftRotArg,
 		JPH::RVec3 wheelFwdRightPosArg,
@@ -39,8 +38,25 @@ public:
 		JPH::Quat chassisRotArg
 	);
 
-	Vector3 cameraPositionAnchorPoint = Vector3Zero();
-	Vector3 cameraTargetAnchorPoint = Vector3Zero();
+	Falcor::Transform* GetPartTransform(EWheel wheelType)
+	{
+		switch (wheelType)
+		{
+		case EWheel::FrontLeft:
+			return &mWheelFwdLeftTransform;
+		case EWheel::FrontRight:
+			return &mWheelFwdRightTransform;
+		case EWheel::RearLeft:
+			return &mWheelRearLeftTransform;
+		case EWheel::RearRight:
+			return &mWheelRearRightTransform;
+		default:
+			return &mChassisTransform;
+		}
+	}
+
+	Falcor::float3 cameraAnchor;
+	Falcor::float3 cameraTargetAnchor;
 
 private:
 	static inline bool		sIsFrontWheel(EWheel inWheel) { return inWheel == EWheel::FrontLeft || inWheel == EWheel::FrontRight; }
@@ -55,17 +71,17 @@ private:
 
 	JPH::Ref<JPH::SixDOFConstraint> mWheels[int(EWheel::Num)];
 
-	const float mHalfVehicleLength = 2.0f;
-	const float mHalfVehicleWidth = 0.9f;
-	const float mHalfVehicleHeight = 0.2f;
+	const float mHalfVehicleLength = 2.5f;
+	const float mHalfVehicleWidth = 0.8f;
+	const float mHalfVehicleHeight = 0.6f;
 
-	const float mHalfWheelHeight = 0.3f;
-	const float mHalfWheelWidth = 0.05f;
-	const float mHalfWidthTravel = 0.5f;
+	const float mHalfWheelHeight = 0.5f;
+	const float mHalfWheelWidth = 0.15f;
+	const float mHalfWidthTravel = 0.2f;
 
-	Model mWheelFwdLeftModel;
-	Model mWheelFwdRightModel;
-	Model mWheelRearLeftModel;
-	Model mWheelRearRightModel;
-	Model mChassisModel;
+	Falcor::Transform mWheelFwdLeftTransform;
+	Falcor::Transform mWheelFwdRightTransform;
+	Falcor::Transform mWheelRearLeftTransform;
+	Falcor::Transform mWheelRearRightTransform;
+	Falcor::Transform mChassisTransform;	
 };

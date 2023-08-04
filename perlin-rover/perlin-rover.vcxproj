@@ -102,25 +102,28 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;JPH_PROFILE_ENABLED;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;JPH_DEBUG_RENDERER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_DEBUG;WIN32_LEAN_AND_MEAN;JPH_PROFILE_ENABLED;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;JPH_DEBUG_RENDERER;WIN32;_WINDOWS;NOMINMAX;UNICODE;_USE_MATH_DEFINES;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;FALCOR_HAS_D3D12=1;FALCOR_HAS_VULKAN=1;FALCOR_HAS_AFTERMATH=0;FALCOR_HAS_NVAPI=0;FALCOR_HAS_CUDA=0;FALCOR_HAS_D3D12_AGILITY_SDK=1;FALCOR_HAS_RTXDI=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)raylib\include;$(SolutionDir)\JoltPhysics;$(SolutionDir)\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)JoltPhysics;$(SolutionDir)stb;$(SolutionDir)Falcor\Source\Falcor;$(SolutionDir)Falcor\external\fmt\include;$(SolutionDir)Falcor\external\vulkan-headers\include;$(SolutionDir)Falcor\external\imgui;$(SolutionDir)Falcor\external\imgui_addons;$(SolutionDir)Falcor\external\packman\nanovdb\include;$(SolutionDir)Falcor\external\include;$(SolutionDir)Falcor\external\packman\rtxdi\rtxdi-sdk\include;$(SolutionDir)Falcor\external\pybind11\include;$(SolutionDir)Falcor\external\packman\python\include;$(SolutionDir)Falcor\external\packman\slang;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)raylib\lib;$(SolutionDir)JoltPhysics\Build\VS2022_CL\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Jolt.lib;raylib.lib;raylibdll.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)JoltPhysics\Build\VS2022_CL\Debug;$(SolutionDir)Falcor\build\windows-vs2022\Source\Falcor\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Jolt.lib;Falcor.lib;FalcorPython.lib;$(SolutionDir)Falcor\build\windows-vs2022\external\fmt\Debug\fmtd.lib;$(SolutionDir)Falcor\external\packman\python\libs\python310.lib;$(SolutionDir)Falcor\external\packman\slang\bin\windows-x64\release\slang.lib;$(SolutionDir)Falcor\external\packman\slang\bin\windows-x64\release\gfx.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>xcopy /y "$(ProjectDir)settings.json" $(OutDir) /S /I
+xcopy /y "$(ProjectDir)media" $(OutDir) /S /I</Command>
     </PostBuildEvent>
     <PreLinkEvent>
-      <Command>xcopy /y $(SolutionDir)raylib\lib\raylib.dll $(OutDir)</Command>
+      <Command>xcopy /y "$(SolutionDir)Falcor\build\windows-vs2022\bin\Debug\*" $(OutDir) /S /I</Command>
     </PreLinkEvent>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -141,15 +144,21 @@
   <ItemGroup>
     <ClCompile Include="KeyHandler.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="TerrainHandler.cpp" />
     <ClCompile Include="Utilities.cpp" />
     <ClCompile Include="VehicleHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KeyHandler.h" />
+    <ClInclude Include="Renderer.h" />
     <ClInclude Include="TerrainHandler.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="VehicleHandler.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="media\scene.pyscene" />
+    <None Include="settings.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
