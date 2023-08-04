@@ -18,24 +18,6 @@ Renderer::~Renderer()
     delete mPhysics;
 }
 
-void Renderer::onGuiRender(Falcor::Gui* pGui)
-{
-    Falcor::Gui::Window w(pGui, "Hello DXR Settings", { 300, 400 }, { 10, 80 });
-
-    w.checkbox("Ray Trace", mRayTrace);
-    w.checkbox("Use Depth of Field", mUseDOF);
-    if (w.button("Load Scene"))
-    {
-        std::filesystem::path path;
-        if (openFileDialog(Falcor::Scene::getFileExtensionFilters(), path))
-        {
-            loadScene(path, getTargetFbo().get());
-        }
-    }
-
-    mpScene->renderUI(w);
-}
-
 void Renderer::onLoad(Falcor::RenderContext* pRenderContext)
 {
     if (getDevice()->isFeatureSupported(Falcor::Device::SupportedFeatures::Raytracing) == false)
