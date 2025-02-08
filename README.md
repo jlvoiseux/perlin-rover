@@ -7,7 +7,7 @@ can be moved around a procedurally generated landscape.
 ## Screenshots
 <img width="959" alt="Screenshot 2025-02-08 194811" src="https://github.com/user-attachments/assets/4e1e97fe-26dc-48b7-936b-398169abc383" />
 <img width="956" alt="Screenshot 2025-02-08 194955" src="https://github.com/user-attachments/assets/195e80f9-bf83-48dc-8f3b-404ecf9121c4" />
-![perlin-rover-ezgif-com-optimize](https://github.com/user-attachments/assets/55caf048-14ae-4610-9d51-20bad18a285f)
+![perlin-rover-opt](https://github.com/user-attachments/assets/9338dfb2-abb4-4f30-97cd-d4c38f053e48)
 
 ## Install and build
 *Tested and built on Windows 11 22H2 using Visual Studio 2022*
