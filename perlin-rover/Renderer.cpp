@@ -143,7 +143,6 @@ void Renderer::loadScene(const std::filesystem::path& path, const Falcor::Fbo* p
 	mpScene->toggleAnimations(true);
     mpScene->setIsLooped(false);
 
-    // Update the controllers
     float radius = mpScene->getSceneBounds().radius();
     mpScene->setCameraSpeed(radius * 0.25f);
     float nearZ = std::max(0.1f, radius / 750.0f);
@@ -151,16 +150,10 @@ void Renderer::loadScene(const std::filesystem::path& path, const Falcor::Fbo* p
     mpCamera->setDepthRange(nearZ, farZ);
     mpCamera->setAspectRatio((float)pTargetFbo->getWidth() / (float)pTargetFbo->getHeight());
 
-    // Get shader modules and type conformances for types used by the scene.
-    // These need to be set on the program in order to use Falcor's material system.
     auto shaderModules = mpScene->getShaderModules();
     auto typeConformances = mpScene->getTypeConformances();
-
-    // Get scene defines. These need to be set on any program using the scene.
     auto defines = mpScene->getSceneDefines();
 
-    // Create raster pass.
-    // This utility wraps the creation of the program and vars, and sets the necessary scene defines.
     Falcor::Program::Desc rasterProgDesc;
     rasterProgDesc.addShaderModules(shaderModules);
     rasterProgDesc.addShaderLibrary("../custom-shaders/PerlinRover.3d.slang").vsEntry("vsMain").psEntry("psMain");
@@ -168,26 +161,12 @@ void Renderer::loadScene(const std::filesystem::path& path, const Falcor::Fbo* p
 
     mpRasterPass = Falcor::RasterPass::create(getDevice(), rasterProgDesc, defines);
 
-    // We'll now create a raytracing program. To do that we need to setup two things:
-    // - A program description (RtProgram::Desc). This holds all shader entry points, compiler flags, macro defintions,
-    // etc.
-    // - A binding table (RtBindingTable). This maps shaders to geometries in the scene, and sets the ray generation and
-    // miss shaders.
-    //
-    // After setting up these, we can create the RtProgram and associated RtProgramVars that holds the variable/resource
-    // bindings. The RtProgram can be reused for different scenes, but RtProgramVars needs to binding table which is
-    // Scene-specific and needs to be re-created when switching scene. In this example, we re-create both the program
-    // and vars when a scene is loaded.
-
     Falcor::RtProgram::Desc rtProgDesc;
     rtProgDesc.addShaderModules(shaderModules);
     rtProgDesc.addShaderLibrary("../custom-shaders/PerlinRover.rt.slang");
     rtProgDesc.addTypeConformances(typeConformances);
-    rtProgDesc.setMaxTraceRecursionDepth(3); // 1 for calling TraceRay from RayGen, 1 for calling it from the
-    // primary-ray ClosestHit shader for reflections, 1 for reflection ray
-    // tracing a shadow ray
-    rtProgDesc.setMaxPayloadSize(24);        // The largest ray payload struct (PrimaryRayData) is 24 bytes. The payload size
-    // should be set as small as possible for maximum performance.
+    rtProgDesc.setMaxTraceRecursionDepth(3);
+    rtProgDesc.setMaxPayloadSize(24);
 
     Falcor::ref<Falcor::RtBindingTable> sbt = Falcor::RtBindingTable::create(2, 2, mpScene->getGeometryCount());
     sbt->setRayGen(rtProgDesc.addRayGen("rayGen"));
